@@ -60,4 +60,4 @@ stages:
               azureSubscription: 'Azure for Students (6b3f65f8-c627-4389-9b18-4e2623914819)'
               appType: webAppLinux
               appName: $(webAppName)
-              package: '$(Pipeline.Workspace)/drop/netxai-0.0.1-SNAPSHOT.jar'
+              package: '$(Pipeline.Workspace)/drop/cp3rm98370-0.0.1-SNAPSHOT.py'
