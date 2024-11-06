@@ -1,5 +1,8 @@
+: https://github.com/ferreiralucas92/jokenpo
+
+
 # Docker
-# Build and push an image to Azure Container Registry
+# Build a Docker image
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
 trigger:
@@ -9,31 +12,55 @@ resources:
 - repo: self
 
 variables:
-  # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '4c23b9f0-ec79-4a61-8665-6c6158606908'
-  imageRepository: 'ricardobritofiapjokenpo'
-  containerRegistry: 'cp3rm98370.azurecr.io'
-  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   tag: '$(Build.BuildId)'
-
-  # Agent VM image name
+  webAppName: 'nextia'
+  environmentName: 'nextia'
   vmImageName: 'ubuntu-latest'
+
 
 stages:
 - stage: Build
-  displayName: Build and push stage
+  displayName: Build image
   jobs:
   - job: Build
     displayName: Build
     pool:
-      vmImage: $(vmImageName)
+      vmImage: ubuntu-latest
     steps:
     - task: Docker@2
-      displayName: Build and push an image to container registry
+      displayName: Build an image
       inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
+        command: build
+        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
         tags: |
           $(tag)
+
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: DeployWebApp
+    displayName: Deploy Web App
+    environment: $(environmentName)
+    pool:
+      vmImage: $(vmImageName)
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              echo "Listing contents of $(Pipeline.Workspace)"
+              ls -R $(Pipeline.Workspace)
+              echo "Listing contents of $(System.DefaultWorkingDirectory)"
+              ls -R $(System.DefaultWorkingDirectory)
+            displayName: 'Debug: List artifact paths'
+          
+          - task: AzureWebApp@1
+            displayName: 'Azure Web App Deploy'
+            inputs:
+              azureSubscription: 'Azure for Students (362bb648-db8e-4428-866f-6a4b169e04d1)'
+              appType: webAppLinux
+              appName: $(webAppName)
+              package: '$(Pipeline.Workspace)/drop/netxai-0.0.1-SNAPSHOT.jar'
